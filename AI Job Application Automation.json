@@ -1,0 +1,581 @@
+{
+  "name": "AI Job Application Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ed080a90-468e-411e-b099-dadbe92be543",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "95387e70-ba75-4071-9510-dd2d30ecd705",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "={{ $('CONFIG').item.json['Original CV'] }}"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        848,
+        16
+      ],
+      "id": "383fd378-7a8f-464f-869f-41a8e17b1e9e",
+      "name": "Retrieve CV",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "dFJKvB0qAquu008a",
+          "name": "Google Docs OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Run actor and get dataset",
+        "actorId": {
+          "__rl": true,
+          "value": "hKByXkMQaC5Qt9UMN",
+          "mode": "list",
+          "cachedResultName": "Linkedin Jobs Scraper (curious_coder/linkedin-jobs-scraper)",
+          "cachedResultUrl": "https://console.apify.com/actors/hKByXkMQaC5Qt9UMN/input"
+        },
+        "customBody": "={\n  \"count\": 100,\n  \"scrapeCompany\": true,\n  \"splitByLocation\": false,\n  \"urls\": [\n    \"{{ $json['LinkedIn Job Search URL'] }}\"\n  ]\n}",
+        "authentication": "apifyOAuth2Api"
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "51a44a19-0571-433f-9603-ee2675f70989",
+      "name": "Job Listings Extract",
+      "credentials": {
+        "apifyOAuth2Api": {
+          "id": "wGLoouk3NlZrbweA",
+          "name": "Apify OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a strict job-matching and relevance evaluation assistant.\nYour task is to evaluate whether a candidate is a reasonable fit for a job description based only on the provided resume and job description."
+            },
+            {
+              "content": "=## Overview\nYou are evaluating whether a candidate is a good match for a job description.\n\nYour task is to strictly assess fit based ONLY on:\n- the CV provided\n- the job description provided\n\nDo not infer missing experience or assume skills.\n\n## Matching Rules\nReturn TRUE only if:\n- The candidate clearly matches at least 70% of required skills OR\n- Has direct equivalent experience in a similar role and industry AND\n- Seniority level is appropriate\n\nReturn FALSE if:\n- Key required skills are missing\n- Experience is unrelated or too generic\n- Seniority mismatch (e.g. junior vs senior role)\n- Evidence of alignment is weak or unclear\n\n## Context\n\n### CV\n{{ $json.content }}\n\n### Job Description\n{{ $('Job Listings Extract').item.json.descriptionText }}\n\n## Output Format (STRICT)\nReturn ONLY valid JSON. No explanations, no text.\n\n{\n  \"verdict\": true\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1040,
+        16
+      ],
+      "id": "99bc8368-55cd-4efe-81da-2c5ca0caf695",
+      "name": "AI Job Match Evaluation",
+      "credentials": {
+        "openAiApi": {
+          "id": "n4KlCL8iLziY9o28",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "253ad00d-11fc-448e-baad-20f3657de619",
+              "leftValue": "={{ $json.output[0].content[0].text.verdict }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1376,
+        16
+      ],
+      "id": "6a07f80c-05cc-4be0-8c8f-719880ee9002",
+      "name": "Filter Matched Jobs"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a professional resume writing assistant.\nYour task is to CV and tailor CV to match a job description while maintaining accuracy and realism.\nDo not fabricate experience or skills that are not supported by the original CV."
+            },
+            {
+              "content": "=## Task\nYou are given a resume and a job description.\n\nYour task is to tailor the resume so it is strongly aligned with the job description while remaining truthful and accurate.\n\n## Job Description\n{{ $('Job Listings Extract').item.json.descriptionText }}\n\n## Original CV\n{{ $('Retrieve CV').item.json.content }}\n\n## Output Requirements\n- Output ONLY the updated resume\n- Format strictly in HTML for Google Docs\n- Do not include any explanations or extra text\n- Do not use markdown or backticks\n- Must start with <html> and end with </html>"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1584,
+        16
+      ],
+      "id": "89ec0798-b532-4c36-8d6d-263cb907c371",
+      "name": "AI Resume Customisation (Job-Aligned)",
+      "credentials": {
+        "openAiApi": {
+          "id": "n4KlCL8iLziY9o28",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "folderId": "default",
+        "title": "=CV - {{ $('Job Listings Extract').item.json.companyName }}"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        1904,
+        16
+      ],
+      "id": "5c3503c7-bd70-4ea3-8edf-345a380f48fa",
+      "name": "Create CV",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "dFJKvB0qAquu008a",
+          "name": "Google Docs OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://www.googleapis.com/upload/drive/v3/files/{{ $json.id }}?uploadType=media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Content-Type\":\"text/html\"\n}",
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "={{ $('AI Resume Customisation (Job-Aligned)').item.json.output[0].content[0].text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2112,
+        16
+      ],
+      "id": "4bc5283d-0505-45a2-9efb-beca540de32a",
+      "name": "Format CV",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "cRytAcR5JdURZqxT",
+          "name": "Google Drive OAuth2 API"
+        },
+        "googleDocsOAuth2Api": {
+          "id": "Ot8QPvL1FaAD6SmK",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('CONFIG').item.json['Job Application Tracker'] }}",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wZoMQ8EKgBrj3X2sI3wvFRsFB18bM1dYqgYFh3zfnow/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job Post Link": "={{ $('Job Listings Extract').item.json.link }}",
+            "Job Title": "={{ $('Job Listings Extract').item.json.title }}",
+            "Seniority Level": "={{ $('Job Listings Extract').item.json.seniorityLevel }}",
+            "Posted At": "={{ $('Job Listings Extract').item.json.postedAt }}",
+            "Company Name": "={{ $('Job Listings Extract').item.json.companyName }}",
+            "Company Website": "={{ $('Job Listings Extract').item.json.companyWebsite }}",
+            "Salary": "={{ $('Job Listings Extract').item.json.salary }}",
+            "Description": "={{ $('Job Listings Extract').item.json.descriptionText }}",
+            "No Applicants": "={{ $('Job Listings Extract').item.json.applicantsCount }}",
+            "Resume URL": "=https://docs.google.com/document/d/{{ $('Create CV').item.json.id }}/edit",
+            "Application URL": "={{ $('Job Listings Extract').item.json.applyUrl }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Job Post Link",
+              "displayName": "Job Post Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Seniority Level",
+              "displayName": "Seniority Level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Posted At",
+              "displayName": "Posted At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company Website",
+              "displayName": "Company Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Salary",
+              "displayName": "Salary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "No Applicants",
+              "displayName": "No Applicants",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Resume URL",
+              "displayName": "Resume URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Application URL",
+              "displayName": "Application URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2368,
+        16
+      ],
+      "id": "df7f6d9d-cca4-4805-980e-ab83195f0502",
+      "name": "Log Job to Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "aqdkdk9O8Z84R5Vb",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "41d01d7e-e458-445e-950a-97df4d91537e",
+              "name": "LinkedIn Job Search URL",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "4e976f89-6a87-4d7c-a1a9-caa43a426d4c",
+              "name": "Original CV",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "db7fdd04-6612-4905-9bec-31a848653853",
+              "name": "Job Application Tracker",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "e0f1e525-8604-432b-9a3a-80ff33a85e87",
+      "name": "CONFIG"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Retrieve CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve CV": {
+      "main": [
+        [
+          {
+            "node": "AI Job Match Evaluation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Listings Extract": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Job Match Evaluation": {
+      "main": [
+        [
+          {
+            "node": "Filter Matched Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Matched Jobs": {
+      "main": [
+        [
+          {
+            "node": "AI Resume Customisation (Job-Aligned)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Resume Customisation (Job-Aligned)": {
+      "main": [
+        [
+          {
+            "node": "Create CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create CV": {
+      "main": [
+        [
+          {
+            "node": "Format CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format CV": {
+      "main": [
+        [
+          {
+            "node": "Log Job to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Job to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONFIG": {
+      "main": [
+        [
+          {
+            "node": "Job Listings Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "3920e71d-132d-4279-be80-49cd57ccc1a0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2c95aa42bad42629dd3fc135ab2171421ae634aab325a4a28cc4a879c6ef6e95"
+  },
+  "id": "mfRTcbX25AqoJufZ",
+  "tags": []
+}
