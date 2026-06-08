@@ -4,6 +4,7 @@ An end-to-end AI-powered workflow that automates job searching, AI-based job mat
 
 This workflow is designed to help users automatically find relevant jobs, customise their CV for each role, and log applications in a structured job tracker.
 
+![Overview](./images/overview.png)
 ---
 
 # 🚀 Features
@@ -38,6 +39,7 @@ This workflow is designed to help users automatically find relevant jobs, custom
 - Click **Import Workflow**
 - Upload the provided `workflow.json`
 
+![Workflow](./images/n8n-workflow.jpg)
 ---
 
 ## 2. Install Required Node (Apify)
@@ -92,6 +94,9 @@ Open the **CONFIG node** in the workflow and update:
   - generate tailored CVs in Google Drive
   - log results in Google Sheets
 
+![CV](./images/CV-output.jpg)
+
+![Jobtracking](./images/google-sheet-output.jpg)
 ---
 
 # ⚠️ Troubleshooting
