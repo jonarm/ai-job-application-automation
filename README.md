@@ -1,4 +1,4 @@
-<img width="1366" height="516" alt="image" src="https://github.com/user-attachments/assets/e04b5a08-b6bc-49a9-98fb-dbdeb45e1e43" /># 🧠 AI Job Application Automation Pipeline (n8n)
+# 🧠 AI Job Application Automation Pipeline (n8n)
 
 An end-to-end AI-powered workflow that automates job searching, AI-based job matching, CV generation and tailoring, and job tracking using n8n, OpenAI, Apify, Google Docs, and Google Sheets.
 
