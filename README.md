@@ -1,4 +1,4 @@
-# 🧠 AI Job Application Automation Pipeline (n8n)
+<img width="1366" height="516" alt="image" src="https://github.com/user-attachments/assets/e04b5a08-b6bc-49a9-98fb-dbdeb45e1e43" /># 🧠 AI Job Application Automation Pipeline (n8n)
 
 An end-to-end AI-powered workflow that automates job searching, AI-based job matching, CV generation and tailoring, and job tracking using n8n, OpenAI, Apify, Google Docs, and Google Sheets.
 
@@ -66,7 +66,7 @@ You must configure the following credentials in n8n:
 - Used for logging job applications
 
 ### 🤖 OpenAI API
-- Used for job matching + resume tailoring  
+- Used for job matching + CV tailoring  
 - You can claim free credits via n8n OpenAI integration (if available in your setup)
 
 ### 🧩 Apify API
@@ -82,7 +82,21 @@ Open the **CONFIG node** in the workflow and update:
 - Google Sheet ID (for job tracking)
 - Google Docs ID (your Original CV)
 
+📊 Google Sheets Configuration
 
+Before running the workflow, create a Google Sheet that will be used to store job results.
+
+The sheet should already contain the column headers that you want to capture from the workflow. The Log Job to Google Sheets node maps data into these columns.
+Example columns:
+| Job Post Link | Job Title              | Seniority Level | Posted At  | Company Name | Company Website                            | Salary      | Description | No Applicants | CV URL      | Application URL |
+| ------------- | ---------------------- | --------------- | ---------- | ------------ | ------------------------------------------ | ----------- | ----------- | ------------- | ----------- | --------------- |
+| https://...   | Cyber Security Manager | Manager         | 2025-06-01 | Example Corp | [https://example.com](https://example.com) | $180k-$220k | ...         | 25            | https://... | https://...     |
+
+**Notes
+* You may customise the columns based on your requirements.
+* If you add, remove, or rename columns, you may need to update the mappings in the Log Job to Google Sheets node.
+* After modifying columns, open the Log Job to Google Sheets node and click Refresh Fields to reload the Google Sheet schema.
+* If fields do not map automatically, manually map the values from the Job Listings Extract node to the appropriate Google Sheet columns.
 ---
 
 # ▶️ Running the Workflow
